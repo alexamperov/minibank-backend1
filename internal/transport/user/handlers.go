@@ -15,8 +15,8 @@ import (
 type IUserService interface {
 	GetUserByID(ctx context.Context, UserID int) (entity.EUser, error)
 	GetUsers(ctx context.Context) ([]entity.EUser, error)
-	//UpdateUserByID TODO Implement
-	UpdateUserByID(ctx context.Context, UserID int) error
+
+	UpdateUserByID(ctx context.Context, UserID int, data map[string]interface{}) error
 
 	SignUp(ctx context.Context, data map[string]interface{}) (int, string, error)
 	SignIn(ctx context.Context, data map[string]interface{}) (int, string, error)
@@ -40,12 +40,11 @@ func NewUserHandler(mw auth.MiddleWare, userService IUserService) *Handler {
 }
 
 func (h *Handler) Register(rtr *httprouter.Router) {
-	//TODO rebuild endpoints
-	//rtr.GET("/api/user/me", h.mw.IsAuthed(h.GetMe))
-	//rtr.PUT("/api/user/me", h.mw.IsAuthed(h.UpdateProfile))
+	rtr.GET("/api/me", h.mw.IsAuthed(h.GetMe))
+	rtr.PUT("/api/me", h.mw.IsAuthed(h.UpdateProfile))
 
-	rtr.GET("/api/user/", h.mw.IsAuthed(h.GetUsers))       // For Employee and Admin
-	rtr.GET("/api/user/:id", h.mw.IsAuthed(h.GetUserByID)) // For Employee and Admin
+	rtr.GET("/api/users/", h.mw.IsAuthed(h.GetUsers))       // For Employee and Admin
+	rtr.GET("/api/users/:id", h.mw.IsAuthed(h.GetUserByID)) // For Employee and Admin
 
 	rtr.POST("/api/auth/sign-up", h.SignUp) // For All
 	rtr.POST("/api/auth/sign-in", h.SignIn) // For All
@@ -130,12 +129,35 @@ func (h *Handler) SignIn(w http.ResponseWriter, r *http.Request, params httprout
 	})
 }
 
-// UpdateProfile TODO Implement
+// UpdateProfile NOT TESTED
 func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+	UserID, _ := GetData(r)
+
+	var input UpdateUserInput
+
+	err := pkg.GetFromBody(r.Body, &input)
+	if err != nil {
+		respondJSON(w, http.StatusBadRequest, err)
+	}
+
+	data, err := input.ToMap()
+	if err != nil {
+		log.Println(err)
+	}
+
+	err = h.userService.UpdateUserByID(r.Context(), UserID, data)
+	if err != nil {
+		respondJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"status": "success update",
+	})
 
 }
 
-// GetUserByID Complete
+// GetUserByID Complete and Work
 func (h *Handler) GetUserByID(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	_, role := GetData(r)
 
@@ -160,5 +182,11 @@ func (h *Handler) GetUserByID(w http.ResponseWriter, r *http.Request, params htt
 }
 
 func (h *Handler) GetUsers(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
-	// TODO Implement
+
+	users, err := h.userService.GetUsers(r.Context())
+	if err != nil {
+		respondJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+	respondJSON(w, http.StatusOK, users)
 }

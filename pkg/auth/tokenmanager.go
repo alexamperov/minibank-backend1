@@ -61,5 +61,6 @@ func (t *TokenManager) ValidateToken(accessToken string) (int, string, error) {
 	if !ok {
 		return 0, "none", errors.New("invalid token")
 	}
+
 	return claims.UserId, claims.UserRole, nil
 }

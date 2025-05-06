@@ -113,3 +113,40 @@ func HashPassword(password string) string {
 	hashString := hex.EncodeToString(hashBytes)
 	return hashString
 }
+
+type UpdateUserInput struct {
+	Username     string `json:"username"`
+	FirstName    string `json:"first_name"`
+	LastName     string `json:"last_name"`
+	Email        string `json:"email"`
+	PropertyType string `json:"property_type,omitempty"`
+	Address      string `json:"address,omitempty"`
+	Phone        string `json:"phone,omitempty"`
+}
+
+func (i *UpdateUserInput) ToMap() (map[string]interface{}, error) {
+	m := make(map[string]interface{})
+	if i.Username != "" {
+		m["username"] = i.Username
+	}
+	if i.FirstName != "" {
+		m["first_name"] = i.FirstName
+	}
+	if i.LastName != "" {
+		m["last_name"] = i.LastName
+	}
+	if i.Email != "" {
+		m["email"] = i.Email
+	}
+	if i.Phone != "" {
+		m["phone"] = i.Phone
+	}
+	if i.PropertyType != "" {
+		m["property_type"] = i.PropertyType
+	}
+	if i.Address != "" {
+		m["address"] = i.Address
+	}
+
+	return m, nil
+}

@@ -12,6 +12,7 @@ type IUserStorage interface {
 	GetUsers(ctx context.Context) ([]entity.EUser, error)
 	CreateUser(ctx context.Context, data map[string]interface{}) (int, error)
 	GetUserIDByCredentials(ctx context.Context, username string, passwordHash string) (int, string, error)
+	UpdateUserByID(ctx context.Context, UserID int, data map[string]interface{}) error
 }
 
 type UserService struct {
@@ -32,10 +33,8 @@ func (u *UserService) GetUsers(ctx context.Context) ([]entity.EUser, error) {
 	return u.userStorage.GetUsers(ctx)
 }
 
-// TODO NOT IMPLEMENTED
-func (u *UserService) UpdateUserByID(ctx context.Context, UserID int) error {
-	//TODO implement me
-	panic("implement me")
+func (u *UserService) UpdateUserByID(ctx context.Context, UserID int, data map[string]interface{}) error {
+	return u.userStorage.UpdateUserByID(ctx, UserID, data)
 }
 
 func (u *UserService) SignUp(ctx context.Context, data map[string]interface{}) (int, string, error) {

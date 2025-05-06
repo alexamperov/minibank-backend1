@@ -5,6 +5,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/rs/cors"
 	"github.com/spf13/viper"
+	"log"
 	user2 "minibank-backend/internal/service/user"
 	"minibank-backend/internal/storage/user"
 	user3 "minibank-backend/internal/transport/user"
@@ -16,32 +17,34 @@ import (
 func main() {
 	err := Init()
 	if err != nil {
+		log.Fatal(err)
 		return
 	}
 
 	rtr := httprouter.New()
 	PGConfig, err := db.InitPGConfig()
 	if err != nil {
+		log.Fatalln(err)
 		return
 	}
 	PGClient, err := db.GetPGClient(context.Background(), PGConfig)
 	if err != nil {
+		log.Fatalln(err)
 		return
 	}
 
 	options := cors.Options{
-		AllowedOrigins:         []string{"http://localhost:3000", "http://185.185.68.187", "https://keys-store.online", "*"},
-		AllowOriginFunc:        nil,
-		AllowOriginRequestFunc: nil,
-		AllowedMethods:         []string{"POST", "PATCH", "GET", "DELETE"},
-		AllowedHeaders:         []string{"Access-Control-Allow-Origin", "Authorization", "Content-Type"},
-		ExposedHeaders:         nil,
-		MaxAge:                 0,
-		AllowCredentials:       true,
-		AllowPrivateNetwork:    false,
-		OptionsPassthrough:     false,
-		OptionsSuccessStatus:   0,
-		Debug:                  false,
+		AllowedOrigins:       []string{"http://localhost:3000", "http://185.185.68.187", "https://keys-store.online", "*"},
+		AllowOriginFunc:      nil,
+		AllowedMethods:       []string{"POST", "PATCH", "GET", "DELETE"},
+		AllowedHeaders:       []string{"Access-Control-Allow-Origin", "Authorization", "Content-Type"},
+		ExposedHeaders:       nil,
+		MaxAge:               0,
+		AllowCredentials:     true,
+		AllowPrivateNetwork:  false,
+		OptionsPassthrough:   false,
+		OptionsSuccessStatus: 0,
+		Debug:                false,
 	}
 	c := cors.New(options)
 	handler := c.Handler(rtr)

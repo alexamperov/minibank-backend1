@@ -68,8 +68,9 @@ func (u *UserStorage) GetUsers(ctx context.Context) ([]entity.EUser, error) {
 	users := []entity.EUser{}
 	for rows.Next() {
 		var user entity.EUser
-		err = rows.Scan(&user.Username, &user.FirstName, &user.LastName, &user.Role, &user.PropertyType, &user.Address, &user.CreatedAt, &user.CreatedAt)
+		err = rows.Scan(&user.Username, &user.FirstName, &user.LastName, &user.Role, &user.PropertyType, &user.Address, &user.Phone, &user.CreatedAt)
 		if err != nil {
+			log.Println(err)
 			return nil, err
 		}
 		users = append(users, user)
@@ -105,4 +106,17 @@ func (u *UserStorage) GetUserIDByCredentials(ctx context.Context, username strin
 		return 0, "", err
 	}
 	return ID, Role, nil
+}
+
+func (u *UserStorage) UpdateUserByID(ctx context.Context, UserID int, data map[string]interface{}) error {
+	query, args, err := sq.Update("users").Where(squirrel.Eq{"id": UserID}).SetMap(data).ToSql()
+	if err != nil {
+		return err
+	}
+
+	_, err = u.conn.Exec(ctx, query, args...)
+	if err != nil {
+		return err
+	}
+	return nil
 }

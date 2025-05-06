@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"github.com/julienschmidt/httprouter"
+	"log"
 	"net/http"
 	"strings"
 )
@@ -24,10 +25,12 @@ func (w *MiddleWare) IsAuthed(handle httprouter.Handle) httprouter.Handle {
 
 		id, role, err := w.tm.ValidateToken(headerArray[1])
 		if err != nil {
+			log.Println(err)
 			return
 		}
+		log.Println("at IsAuthed", id, role)
 		ctx := context.WithValue(request.Context(), "user_id", id)
-		ctx = context.WithValue(request.Context(), "user_role", role)
+		ctx = context.WithValue(ctx, "user_role", role)
 
 		handle(writer, request.WithContext(ctx), params)
 	}
