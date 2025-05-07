@@ -36,6 +36,7 @@ func GetData(r *http.Request) (int, string) {
 	return userID, userRole
 }
 
+// Register TODO Grant Role endpoint
 func (h *Handler) Register(rtr *httprouter.Router) {
 	rtr.GET("/api/admin/employees", h.mw.IsAuthed(h.GetEmployees))
 	rtr.POST("/api/admin/employees/:employee_id/salary", h.mw.IsAuthed(h.PaySalary))
@@ -93,6 +94,7 @@ func (h *Handler) PaySalary(w http.ResponseWriter, r *http.Request, p httprouter
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// GetEmployeeByID NOT TESTED
 func (h *Handler) GetEmployeeByID(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	// Проверка прав доступа
 	_, userRole := GetData(r)
