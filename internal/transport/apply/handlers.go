@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"github.com/julienschmidt/httprouter"
 	"minibank-backend/internal/entity"
+	"minibank-backend/pkg"
 	"minibank-backend/pkg/auth"
 	"net/http"
 	"strconv"
@@ -45,11 +46,11 @@ func GetData(r *http.Request) (int, string) {
 }
 
 type IApplyService interface {
-	GetAllApplies(ctx context.Context, UserID int) ([]entity.EApply, error)
+	GetAllApplies(ctx context.Context, UserID int, isUser bool) ([]entity.EApply, error)
 	GetApplyByID(ctx context.Context, UserID int, applyID int) (*entity.EApply, error)
 	CreateApply(ctx context.Context, UserID int, applyData map[string]interface{}) (int, error)
-	AcceptApply(ctx context.Context, UserID int, applyID int) (*entity.EApply, error)
-	DenyApply(ctx context.Context, UserID int, applyID int) (*entity.EApply, error)
+	AcceptApply(ctx context.Context, UserID int, applyID int) error
+	DenyApply(ctx context.Context, UserID int, applyID int) error
 }
 
 func (h *Handler) Register(rtr *httprouter.Router) {
@@ -75,7 +76,7 @@ func (h *Handler) GetAllApplies(w http.ResponseWriter, r *http.Request, p httpro
 
 	clientUserID := r.URL.Query().Get("user_id")
 	if clientUserID == "" && role == "user" { // For Users, if param user_id is empty
-		applies, err := h.applyService.GetAllApplies(r.Context(), userID)
+		applies, err := h.applyService.GetAllApplies(r.Context(), userID, true)
 		if err != nil {
 			respondJSON(w, http.StatusInternalServerError, err.Error())
 			return
@@ -86,7 +87,7 @@ func (h *Handler) GetAllApplies(w http.ResponseWriter, r *http.Request, p httpro
 		if err != nil {
 			return
 		}
-		applies, err := h.applyService.GetAllApplies(r.Context(), ClientID)
+		applies, err := h.applyService.GetAllApplies(r.Context(), ClientID, false)
 		if err != nil {
 			respondJSON(w, http.StatusInternalServerError, err.Error())
 		}
@@ -95,6 +96,7 @@ func (h *Handler) GetAllApplies(w http.ResponseWriter, r *http.Request, p httpro
 
 }
 
+// GetApplyByID [DONE | NOT TESTED]
 func (h *Handler) GetApplyByID(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 
 	userID, role := GetData(r)
@@ -102,7 +104,7 @@ func (h *Handler) GetApplyByID(w http.ResponseWriter, r *http.Request, p httprou
 	if userID == 0 {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 	}
-	// Получаем ID заявки
+
 	applyID := p.ByName("apply_id")
 	if applyID == "" {
 		http.Error(w, "Missing apply ID", http.StatusBadRequest)
@@ -111,6 +113,7 @@ func (h *Handler) GetApplyByID(w http.ResponseWriter, r *http.Request, p httprou
 
 	ApplyID, err := strconv.Atoi(applyID)
 	if err != nil {
+		respondJSON(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -119,6 +122,7 @@ func (h *Handler) GetApplyByID(w http.ResponseWriter, r *http.Request, p httprou
 		respondJSON(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+
 	if role == "user" {
 	} else if role == "employee" {
 	} // TODO Filter for role
@@ -136,8 +140,10 @@ func (h *Handler) CreateApply(w http.ResponseWriter, r *http.Request, p httprout
 	}
 
 	var input ApplyInput
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	err := pkg.GetFromBody(r.Body, &input)
+	if err != nil {
+		respondJSON(w, http.StatusBadRequest, err.Error())
+		return
 	}
 
 	input.UserID = userID
@@ -151,6 +157,7 @@ func (h *Handler) CreateApply(w http.ResponseWriter, r *http.Request, p httprout
 	respondJSON(w, status, map[string]interface{}{"status": "created"})
 }
 
+// AcceptApply [DONE | NOT TESTED]
 func (h *Handler) AcceptApply(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	userID, role := GetData(r)
 
@@ -167,18 +174,20 @@ func (h *Handler) AcceptApply(w http.ResponseWriter, r *http.Request, p httprout
 
 	ApplyID, err := strconv.Atoi(applyID)
 	if err != nil {
+		respondJSON(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	apply, err := h.applyService.AcceptApply(r.Context(), userID, ApplyID)
+	err = h.applyService.AcceptApply(r.Context(), userID, ApplyID)
 	if err != nil {
 		respondJSON(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	respondJSON(w, http.StatusOK, apply)
+	respondJSON(w, http.StatusOK, map[string]interface{}{"status": "accepted"})
 }
 
+// DenyApply [DONE | NOT TESTED]
 func (h *Handler) DenyApply(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	// Проверка прав
 	UserID, role := GetData(r)
@@ -200,11 +209,11 @@ func (h *Handler) DenyApply(w http.ResponseWriter, r *http.Request, p httprouter
 	}
 
 	// Обрабатываем отклонение
-	apply, err := h.applyService.DenyApply(r.Context(), UserID, ApplyID)
+	err = h.applyService.DenyApply(r.Context(), UserID, ApplyID)
 	if err != nil {
 		respondJSON(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	respondJSON(w, http.StatusOK, apply)
+	respondJSON(w, http.StatusOK, map[string]interface{}{"status": "denied"})
 }
